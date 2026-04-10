@@ -1,0 +1,4 @@
+SocksPort 9052
+ControlPort 9053
+CookieAuthentication 1
+DataDirectory /home/alexeykalmykov/bisq/scraper_data/tor_data

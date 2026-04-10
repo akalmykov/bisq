@@ -41,4 +41,8 @@ deploy
 /build-logic/packaging/out/*
 /build-logic/regtest/out/*
 /build-logic/toolchain-resolver/out/*
+/scraper_data
 /build-logic/tor-binary/out/*
+core/scraper_data/
+core/scraper_data_mainnet/
+core/scraper_data_regtest/

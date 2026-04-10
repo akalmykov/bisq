@@ -31,6 +31,7 @@ abstract class BisqToolchainResolver : JavaToolchainResolver {
         when (javaVersion) {
             11 -> "https://cdn.azul.com/zulu/bin/zulu11.66.15-ca-jdk11.0.20-linux_x64.zip"
             17 -> "https://cdn.azul.com/zulu/bin/zulu17.44.15-ca-jdk17.0.8-linux_x64.zip"
+            21 -> null // Let Gradle find it locally
             else -> null
         }
 

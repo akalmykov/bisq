@@ -82,6 +82,15 @@ dependencies {
     integrationTestRuntimeOnly libs.junit.jupiter.engine
 }
 
+task runScraper(type: JavaExec) {
+    mainClass = 'bisq.core.app.scraper.MainnetOfferScraper'
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    if (project.hasProperty('args')) {
+        args project.args.split('\\s+')
+    }
+}
+
 test {
     systemProperty 'jdk.attach.allowAttachSelf', true
 }

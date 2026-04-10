@@ -33,9 +33,19 @@ public class JsonUtil {
     }
 
     public static String objectToJson(Object object, ExclusionStrategy exclusionStrategy) {
+        return objectToJson(object, exclusionStrategy, true);
+    }
+
+    public static String toJsonCompact(Object object) {
+        return objectToJson(object, new AnnotationExclusionStrategy(), false);
+    }
+
+    private static String objectToJson(Object object, ExclusionStrategy exclusionStrategy, boolean prettyPrinting) {
         GsonBuilder gsonBuilder = new GsonBuilder()
-                .setExclusionStrategies(exclusionStrategy)
-                .setPrettyPrinting();
+                .setExclusionStrategies(exclusionStrategy);
+        if (prettyPrinting) {
+            gsonBuilder.setPrettyPrinting();
+        }
         if (object instanceof Contract || object instanceof OfferPayload) {
             gsonBuilder.registerTypeAdapter(OfferPayload.class,
                     new OfferPayload.JsonSerializer());
