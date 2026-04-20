@@ -196,6 +196,86 @@ Each file is a JSON array of all currently active offer payloads on the Bisq net
   seconds of appends. This is an acceptable trade-off for scraping (the data can be
   recovered from peers on next sync).
 
+## Archiving and Cleanup
+
+Two scripts handle backing up scraped data to compressed archives and safely deleting it
+after verification.
+
+### archive_scraped_data.sh
+
+Creates a `tar.zst` archive of all scraped data and writes a checkpoint + manifest.
+
+**What it does:**
+1. Hashes every file (SHA256) before archiving, recording mtime + size in `archive.manifest.tsv`
+2. Creates a `tar.zst` archive (multi-threaded, level 3 compression)
+3. Verifies archive integrity via `zstd -t`
+4. Optionally spot-checks a few small files extracted from the archive against their hashes
+5. Atomically writes `archive.checkpoint.json` and `archive.manifest.tsv` to `archives/`
+
+**Output files in `archives/`:**
+- `archive.checkpoint.json` — archive name, SHA256, latest data mtime, file count
+- `archive.manifest.tsv` — one line per file: `sha256<TAB>mtime_epoch<TAB>size_bytes<TAB>relative_path`
+- `scraper_data_YYYYMMDD_HHMMSS.tar.zst` — the compressed archive
+
+**Usage:**
+```bash
+# Archive with default paths (core/scraper_data_mainnet -> archives/)
+./scripts/archive_scraped_data.sh
+
+# Skip extracting files from archive for hash verification (faster for large datasets)
+./scripts/archive_scraped_data.sh --no-spot-check
+
+# Custom paths
+./scripts/archive_scraped_data.sh --data-dir /path/to/data --archive-dir /path/to/archives
+```
+
+### cleanup_scraped_data.sh
+
+Deletes scraped data only after verifying it is safely archived. **Runs in dry-run mode by
+default** — nothing is deleted until you pass `--execute`.
+
+**Safety guarantees (5 layers):**
+1. Checkpoint + manifest must exist and be non-empty
+2. Archive file must exist with **matching SHA256** (prevents deleting if archive is corrupted)
+3. Every file must have a **matching SHA256** in the manifest (detects modifications since archiving)
+4. **No file newer than** the checkpoint's `latest_data_mtime_epoch` is ever deleted (protects data created after the archive)
+5. **Dry-run by default** — requires `--execute` to actually delete
+
+**Usage:**
+```bash
+# Dry-run: see what would be deleted (recommended first step)
+./scripts/cleanup_scraped_data.sh
+
+# Actually delete files that pass all safety checks
+./scripts/cleanup_scraped_data.sh --execute
+
+# Skip archive checksum verification (e.g. archive was moved to S3/cold storage)
+./scripts/cleanup_scraped_data.sh --execute --force
+```
+
+### Typical workflow
+
+```bash
+# 1. Stop the scraper (optional but recommended — avoids race conditions)
+#    Ctrl+C in the tmux session, or: tmux kill-session -t bisq-scraper
+
+# 2. Archive all scraped data
+./scripts/archive_scraped_data.sh
+
+# 3. Preview what would be deleted (dry-run)
+./scripts/cleanup_scraped_data.sh
+
+# 4. If everything looks correct, execute the deletion
+./scripts/cleanup_scraped_data.sh --execute
+
+# 5. Restart the scraper
+tmux new -s bisq-scraper
+# ... paste the scraper run command ...
+```
+
+The scraper will recreate fresh data files on startup. Files created after the archive
+(e.g. if you kept the scraper running) are automatically preserved by the cleanup script.
+
 ## Build
 
 ```bash

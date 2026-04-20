@@ -46,3 +46,4 @@ deploy
 core/scraper_data/
 core/scraper_data_mainnet/
 core/scraper_data_regtest/
+archives
